@@ -40,10 +40,16 @@ exports.register = async (req, res) => {
             expiresIn: '1d'
         });
 
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
         res.status(201).json({
             success: true,
             message: 'Registration successful',
-            token,
             data: {
                 id: user._id,
                 name: user.name,
@@ -80,10 +86,22 @@ exports.login = async (req, res) => {
             expiresIn: '1d'
         });
 
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
         res.status(200).json({
             success: true,
             message: 'Вхід успішний',
-            token
+            data: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
