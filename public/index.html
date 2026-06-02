@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Готель — Список кімнат</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #fafafa; color: #333; }
+        nav { margin-bottom: 30px; padding: 15px; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; display: flex; align-items: center; }
+        nav a { margin-right: 20px; text-decoration: none; color: #007bff; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        #logoutBtn { background: #dc3545; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-left: auto; }
+        #logoutBtn:hover { background: #bd2130; }
+        .rooms-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 0; }
+        .room-card { background: white; border: 1px solid #ddd; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); list-style: none; position: relative; }
+        .room-card h3 { margin-top: 0; color: #222; border-bottom: 2px solid #007bff; padding-bottom: 8px; }
+        .room-card p { margin: 8px 0; font-size: 15px; }
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 13px; }
+        .available { background: #d4edda; color: #155724; }
+        .booked { background: #f8d7da; color: #721c24; }
+        .delete-btn { background: #dc3545; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; margin-top: 10px; display: block; width: 100%; }
+        .delete-btn:hover { background: #bd2130; }
+    </style>
+</head>
+<body>
+    <h1>Управління готелем: Доступні номери</h1>
+    
+    <nav>
+        <a href="/login.html" id="loginLink">Увійти</a>
+        <a href="/register.html" id="registerLink">Реєстрація</a>
+        <a href="/create.html" id="createLink">Додати новий номер</a>
+        <button id="logoutBtn" style="display:none;">Вийти з системи</button>
+    </nav>
+
+    <ul id="roomsList" class="rooms-container">Завантаження інформації про номери...</ul>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (token) {
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('registerLink').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.reload();
+        });
+
+        async function loadRooms() {
+            try {
+                const response = await fetch('/api/rooms');
+                const data = await response.json();
+                
+                const list = document.getElementById('roomsList');
+                
+                if (!data.data || data.data.length === 0) {
+                    list.innerHTML = '<li style="list-style:none;">Наразі у готелі немає зареєстрованих номерів.</li>';
+                    return;
+                }
+
+                list.innerHTML = data.data.map(room => `
+                    <li class="room-card">
+                        <h3>Кімната № ${room.number}</h3>
+                        <p><strong>Категорія:</strong> ${room.type}</p>
+                        <p><strong>Місткість:</strong> для ${room.capacity} ос.</p>
+                        <p><strong>Вартість:</strong> ${room.price} грн / доба</p>
+                        <p><strong>Статус:</strong> 
+                            <span class="status-badge ${room.available ? 'available' : 'booked'}">
+                                ${room.available ? 'Вільна для заселення' : 'Зайнята'}
+                            </span>
+                        </p>
+                        ${token ? `<button class="delete-btn" onclick="deleteRoom('${room._id}')">Видалити номер</button>` : ''}
+                    </li>
+                `).join('');
+
+            } catch (error) {
+                document.getElementById('roomsList').textContent = 'Помилка при зв\'язку з API готелю.';
+            }
+        }
+
+        async function deleteRoom(roomId) {
+            if (!confirm('Ви впевнені, що хочете видалити цей номер із бази даних готелю?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/rooms/${roomId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.message || 'Помилка при видаленні');
+                    return;
+                }
+
+                alert('Номер успішно видалено!');
+                loadRooms();
+            } catch (error) {
+                alert('Помилка з\'єднання з сервером');
+            }
+        }
+
+        loadRooms();
+    </script>
+</body>
+</html>
