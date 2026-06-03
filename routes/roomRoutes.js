@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Room = require('../models/Room');
 const jwt = require('jsonwebtoken');
+const bookingRouter = require('./bookingRoutes');
 
 router.get('/', async (req, res) => {
     try {
@@ -50,5 +51,7 @@ router.delete('/:id', async (req, res) => {
         res.status(401).json({ success: false, message: 'Невалідний або прострочений токен' });
     }
 });
+
+router.use('/:roomId/bookings', bookingRouter);
 
 module.exports = router;
